@@ -11,7 +11,7 @@ IS_INTERACTIVE=true
 PROVIDER="${NOTCHI_PROVIDER:-claude}"
 for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
     ARGS="$(ps -o args= -p "$CHECK_PID" 2>/dev/null)"
-    LOWER_ARGS="${ARGS,,}"
+    LOWER_ARGS="$(printf '%s' "$ARGS" | tr '[:upper:]' '[:lower:]')"
     case "$LOWER_ARGS" in
         *" gemini-cli "*|*" gemini "*|*/gemini-cli\ *|*/gemini\ *)
             PROVIDER="gemini-cli"
@@ -24,12 +24,10 @@ for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
             ;;
     esac
 
-    case "$ARGS" in
-        *" -p "*|*" --print "*|*" --non-interactive "*|*" -p"|*" --print"|*" --non-interactive")
+    if printf '%s' "$ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
         IS_INTERACTIVE=false
         break
-            ;;
-    esac
+    fi
 done
 export NOTCHI_INTERACTIVE=$IS_INTERACTIVE
 export NOTCHI_PROVIDER=$PROVIDER
