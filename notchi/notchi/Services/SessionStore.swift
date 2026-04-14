@@ -269,6 +269,7 @@ final class SessionStore {
         if combined.contains(".gemini") || combined.contains("gemini-cli") || combined.contains("/gemini/") {
             return .geminiCLI
         }
+        logger.debug("Provider fallback to Claude for cwd/transcript: \(combined, privacy: .public)")
         return .claude
     }
 

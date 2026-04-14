@@ -11,18 +11,25 @@ IS_INTERACTIVE=true
 PROVIDER="${NOTCHI_PROVIDER:-claude}"
 for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
     ARGS="$(ps -o args= -p "$CHECK_PID" 2>/dev/null)"
-    if echo "$ARGS" | grep -qiE '(^|/| )(gemini|gemini-cli)( |$)'; then
-        PROVIDER="gemini-cli"
-    elif echo "$ARGS" | grep -qiE '(^|/| )codex( |$)'; then
-        PROVIDER="codex"
-    elif echo "$ARGS" | grep -qiE '(^|/| )claude( |$)'; then
-        PROVIDER="claude"
-    fi
+    LOWER_ARGS="${ARGS,,}"
+    case "$LOWER_ARGS" in
+        *" gemini-cli "*|*" gemini "*|*/gemini-cli\ *|*/gemini\ *)
+            PROVIDER="gemini-cli"
+            ;;
+        *" codex "*|*/codex\ *)
+            PROVIDER="codex"
+            ;;
+        *" claude "*|*/claude\ *)
+            PROVIDER="claude"
+            ;;
+    esac
 
-    if echo "$ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
+    case "$ARGS" in
+        *" -p "*|*" --print "*|*" --non-interactive "*|*" -p"|*" --print"|*" --non-interactive")
         IS_INTERACTIVE=false
         break
-    fi
+            ;;
+    esac
 done
 export NOTCHI_INTERACTIVE=$IS_INTERACTIVE
 export NOTCHI_PROVIDER=$PROVIDER
@@ -39,6 +46,7 @@ try:
 except:
     sys.exit(0)
 
+# Claude uses hook_event_name. Some other CLIs use event_name/event.
 hook_event = (
     input_data.get('hook_event_name')
     or input_data.get('event_name')
