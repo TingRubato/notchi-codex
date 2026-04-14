@@ -1,20 +1,44 @@
 #!/bin/bash
-# Notchi Hook - forwards Claude Code events to Notchi app via Unix socket
+# Notchi Hook - forwards CLI events to Notchi app via Unix socket
 
 SOCKET_PATH="/tmp/notchi.sock"
 
 # Exit silently if socket doesn't exist (app not running)
 [ -S "$SOCKET_PATH" ] || exit 0
 
-# Detect non-interactive (claude -p / --print) sessions
+# Detect source provider and non-interactive sessions
 IS_INTERACTIVE=true
+PROVIDER="${NOTCHI_PROVIDER:-claude}"
+PROVIDER_SCORE=1
 for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
-    if ps -o args= -p "$CHECK_PID" 2>/dev/null | grep -qE '(^| )(-p|--print)( |$)'; then
+    ARGS="$(ps -o args= -p "$CHECK_PID" 2>/dev/null)"
+    [ -n "$ARGS" ] || continue
+    LOWER_ARGS="$(printf '%s' "$ARGS" | tr '[:upper:]' '[:lower:]')"
+    DETECTED_PROVIDER=""
+    DETECTED_SCORE=0
+    if printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])(gemini|gemini-cli)([ ]|$)'; then
+        DETECTED_PROVIDER="gemini-cli"
+        DETECTED_SCORE=3
+    elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])codex([ ]|$)'; then
+        DETECTED_PROVIDER="codex"
+        DETECTED_SCORE=2
+    elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])claude([ ]|$)'; then
+        DETECTED_PROVIDER="claude"
+        DETECTED_SCORE=1
+    fi
+
+    if [ "$DETECTED_SCORE" -gt "$PROVIDER_SCORE" ]; then
+        PROVIDER="$DETECTED_PROVIDER"
+        PROVIDER_SCORE="$DETECTED_SCORE"
+    fi
+
+    if printf '%s' "$LOWER_ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
         IS_INTERACTIVE=false
         break
     fi
 done
 export NOTCHI_INTERACTIVE=$IS_INTERACTIVE
+export NOTCHI_PROVIDER=$PROVIDER
 
 # Parse input and send to socket using Python
 /usr/bin/python3 -c "
@@ -28,7 +52,13 @@ try:
 except:
     sys.exit(0)
 
-hook_event = input_data.get('hook_event_name', '')
+# Claude uses hook_event_name, Codex uses event_name, gemini-cli may send event.
+hook_event = (
+    input_data.get('hook_event_name')
+    or input_data.get('event_name')
+    or input_data.get('event')
+    or ''
+)
 
 status_map = {
     'UserPromptSubmit': 'processing',
@@ -43,32 +73,33 @@ status_map = {
 }
 
 output = {
-    'session_id': input_data.get('session_id', ''),
-    'transcript_path': input_data.get('transcript_path', ''),
-    'cwd': input_data.get('cwd', ''),
+    'session_id': input_data.get('session_id') or input_data.get('sessionId') or '',
+    'transcript_path': input_data.get('transcript_path') or input_data.get('transcriptPath') or '',
+    'cwd': input_data.get('cwd') or input_data.get('working_directory') or input_data.get('workspace') or '',
     'event': hook_event,
     'status': input_data.get('status', status_map.get(hook_event, 'unknown')),
     'pid': None,
     'tty': None,
     'interactive': os.environ.get('NOTCHI_INTERACTIVE', 'true') == 'true',
-    'permission_mode': input_data.get('permission_mode', 'default')
+    'permission_mode': input_data.get('permission_mode') or input_data.get('mode') or 'default',
+    'provider': os.environ.get('NOTCHI_PROVIDER', 'claude')
 }
 
 # Pass user prompt directly for UserPromptSubmit
 if hook_event == 'UserPromptSubmit':
-    prompt = input_data.get('prompt', '')
+    prompt = input_data.get('prompt') or input_data.get('user_prompt') or input_data.get('input') or ''
     if prompt:
         output['user_prompt'] = prompt
 
-tool = input_data.get('tool_name', '')
+tool = input_data.get('tool_name') or input_data.get('tool') or ''
 if tool:
     output['tool'] = tool
 
-tool_id = input_data.get('tool_use_id', '')
+tool_id = input_data.get('tool_use_id') or input_data.get('toolUseId') or ''
 if tool_id:
     output['tool_use_id'] = tool_id
 
-tool_input = input_data.get('tool_input', {})
+tool_input = input_data.get('tool_input') or input_data.get('toolInput') or {}
 if tool_input:
     output['tool_input'] = tool_input
 

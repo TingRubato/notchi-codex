@@ -68,6 +68,13 @@ struct SessionRowView: View {
     }
 
     private var providerAccentColor: Color {
-        TerminalColors.claudeOrange
+        switch session.provider {
+        case .claude:
+            TerminalColors.claudeOrange
+        case .codex:
+            TerminalColors.codexTeal
+        case .geminiCLI:
+            TerminalColors.geminiPurple
+        }
     }
 }

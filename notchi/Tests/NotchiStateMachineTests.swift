@@ -63,6 +63,23 @@ final class NotchiStateMachineTests: XCTestCase {
         XCTAssertEqual(receivedTriggers, [.sessionStart])
     }
 
+    func testSessionStartDoesNotForwardToClaudeUsageHandlerForNonClaudeProvider() {
+        let stateMachine = NotchiStateMachine.shared
+        var receivedTriggers: [ClaudeUsageResumeTrigger] = []
+        stateMachine.handleClaudeUsageResumeTrigger = { trigger in
+            receivedTriggers.append(trigger)
+        }
+
+        stateMachine.handleEvent(makeEvent(
+            sessionId: "codex-session-start-\(UUID().uuidString)",
+            event: "SessionStart",
+            status: "processing",
+            provider: .codex
+        ))
+
+        XCTAssertTrue(receivedTriggers.isEmpty)
+    }
+
     func testInteractiveUserPromptSubmitForwardsToClaudeUsageHandler() {
         let stateMachine = NotchiStateMachine.shared
         var receivedTriggers: [ClaudeUsageResumeTrigger] = []
@@ -147,7 +164,8 @@ final class NotchiStateMachineTests: XCTestCase {
         event: String,
         status: String,
         userPrompt: String? = nil,
-        interactive: Bool = true
+        interactive: Bool = true,
+        provider: AIProvider? = nil
     ) -> HookEvent {
         HookEvent(
             sessionId: sessionId,
@@ -162,7 +180,8 @@ final class NotchiStateMachineTests: XCTestCase {
             toolUseId: nil,
             userPrompt: userPrompt,
             permissionMode: nil,
-            interactive: interactive
+            interactive: interactive,
+            provider: provider
         )
     }
 }

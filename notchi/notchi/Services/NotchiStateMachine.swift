@@ -57,7 +57,7 @@ final class NotchiStateMachine {
                 }
             }
 
-            if session.isInteractive, !SessionStore.isLocalSlashCommand(event.userPrompt) {
+            if session.provider == .claude, session.isInteractive, !SessionStore.isLocalSlashCommand(event.userPrompt) {
                 handleClaudeUsageResumeTrigger(.userPromptSubmit)
             }
 
@@ -73,7 +73,9 @@ final class NotchiStateMachine {
             scheduleFileSync(sessionId: event.sessionId, transcriptPath: transcriptPath)
 
         case "SessionStart":
-            handleClaudeUsageResumeTrigger(.sessionStart)
+            if session.provider == .claude {
+                handleClaudeUsageResumeTrigger(.sessionStart)
+            }
 
         case "Stop":
             SoundService.shared.playNotificationSound(sessionId: event.sessionId, isInteractive: session.isInteractive)

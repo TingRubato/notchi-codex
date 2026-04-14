@@ -26,7 +26,7 @@ Pull requests without a corresponding issue may be closed or sit indefinitely.
 2. Open `notchi/notchi.xcodeproj` in Xcode
 3. Build and run (`⌘R`)
 
-The app auto-installs Claude Code hooks on launch, so just start a Claude Code session to see it in action.
+The app auto-installs hooks on launch, so just start a supported CLI session (Claude Code, Codex, or gemini-cli) to see it in action.
 
 ## Code Style
 
@@ -37,7 +37,7 @@ The app auto-installs Claude Code hooks on launch, so just start a Claude Code s
 
 ## Hook Safety
 
-**Never manually edit `~/.claude/settings.json`.** Hook changes go through:
+**Never manually edit CLI hook settings files directly.** Hook changes go through:
 - `notchi/notchi/Resources/notchi-hook.sh` (the hook script)
 - `notchi/notchi/Services/HookInstaller.swift` (hook registration)
 
