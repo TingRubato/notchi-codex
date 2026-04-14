@@ -12,17 +12,13 @@ PROVIDER="${NOTCHI_PROVIDER:-claude}"
 for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
     ARGS="$(ps -o args= -p "$CHECK_PID" 2>/dev/null)"
     LOWER_ARGS="$(printf '%s' "$ARGS" | tr '[:upper:]' '[:lower:]')"
-    case "$LOWER_ARGS" in
-        gemini-cli\ *|gemini\ *|*" gemini-cli "*|*" gemini "*|*/gemini-cli\ *|*/gemini\ *)
-            PROVIDER="gemini-cli"
-            ;;
-        codex\ *|*" codex "*|*/codex\ *)
-            PROVIDER="codex"
-            ;;
-        claude\ *|*" claude "*|*/claude\ *)
-            PROVIDER="claude"
-            ;;
-    esac
+    if printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])(gemini|gemini-cli)([ ]|$)'; then
+        PROVIDER="gemini-cli"
+    elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])codex([ ]|$)'; then
+        PROVIDER="codex"
+    elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])claude([ ]|$)'; then
+        PROVIDER="claude"
+    fi
 
     if printf '%s' "$LOWER_ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
         IS_INTERACTIVE=false
