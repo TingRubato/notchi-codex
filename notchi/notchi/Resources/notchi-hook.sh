@@ -24,7 +24,7 @@ for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
             ;;
     esac
 
-    if printf '%s' "$ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
+    if printf '%s' "$LOWER_ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
         IS_INTERACTIVE=false
         break
     fi
@@ -44,7 +44,7 @@ try:
 except:
     sys.exit(0)
 
-# Claude uses hook_event_name. Some other CLIs use event_name/event.
+# Claude uses hook_event_name, Codex uses event_name, gemini-cli may send event.
 hook_event = (
     input_data.get('hook_event_name')
     or input_data.get('event_name')
