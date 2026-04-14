@@ -9,17 +9,27 @@ SOCKET_PATH="/tmp/notchi.sock"
 # Detect source provider and non-interactive sessions
 IS_INTERACTIVE=true
 PROVIDER="${NOTCHI_PROVIDER:-claude}"
+PROVIDER_SCORE=1
 for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
     ARGS="$(ps -o args= -p "$CHECK_PID" 2>/dev/null)"
     [ -n "$ARGS" ] || continue
     LOWER_ARGS="$(printf '%s' "$ARGS" | tr '[:upper:]' '[:lower:]')"
-    # Provider precedence: gemini-cli > codex > claude.
+    DETECTED_PROVIDER=""
+    DETECTED_SCORE=0
     if printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])(gemini|gemini-cli)([ ]|$)'; then
-        PROVIDER="gemini-cli"
+        DETECTED_PROVIDER="gemini-cli"
+        DETECTED_SCORE=3
     elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])codex([ ]|$)'; then
-        PROVIDER="codex"
+        DETECTED_PROVIDER="codex"
+        DETECTED_SCORE=2
     elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])claude([ ]|$)'; then
-        PROVIDER="claude"
+        DETECTED_PROVIDER="claude"
+        DETECTED_SCORE=1
+    fi
+
+    if [ "$DETECTED_SCORE" -gt "$PROVIDER_SCORE" ]; then
+        PROVIDER="$DETECTED_PROVIDER"
+        PROVIDER_SCORE="$DETECTED_SCORE"
     fi
 
     if printf '%s' "$LOWER_ARGS" | grep -qE '(^| )(-p|--print|--non-interactive)( |$)'; then
