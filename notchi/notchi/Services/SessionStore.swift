@@ -262,14 +262,19 @@ final class SessionStore {
             return rawProvider
         }
 
-        let combined = "\(cwd) \(transcriptPath ?? "")".lowercased()
-        if combined.contains(".codex") || combined.contains("/codex/") {
+        let lowerCwd = cwd.lowercased()
+        let lowerTranscript = (transcriptPath ?? "").lowercased()
+
+        if lowerCwd.contains("/.codex/") || lowerCwd.hasSuffix("/.codex") ||
+            lowerTranscript.contains("/.codex/") || lowerTranscript.hasSuffix("/.codex") {
             return .codex
         }
-        if combined.contains(".gemini") || combined.contains("gemini-cli") || combined.contains("/gemini/") {
+        if lowerCwd.contains("/.gemini/") || lowerCwd.hasSuffix("/.gemini") ||
+            lowerTranscript.contains("/.gemini/") || lowerTranscript.hasSuffix("/.gemini") ||
+            lowerCwd.contains("/gemini-cli/") || lowerTranscript.contains("/gemini-cli/") {
             return .geminiCLI
         }
-        logger.debug("Provider fallback to Claude for cwd/transcript: \(combined, privacy: .public)")
+        logger.debug("Provider fallback to Claude for cwd/transcript")
         return .claude
     }
 

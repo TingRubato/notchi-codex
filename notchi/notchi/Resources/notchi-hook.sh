@@ -11,7 +11,9 @@ IS_INTERACTIVE=true
 PROVIDER="${NOTCHI_PROVIDER:-claude}"
 for CHECK_PID in $PPID $(ps -o ppid= -p $PPID 2>/dev/null | tr -d ' '); do
     ARGS="$(ps -o args= -p "$CHECK_PID" 2>/dev/null)"
+    [ -n "$ARGS" ] || continue
     LOWER_ARGS="$(printf '%s' "$ARGS" | tr '[:upper:]' '[:lower:]')"
+    # Provider precedence: gemini-cli > codex > claude.
     if printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])(gemini|gemini-cli)([ ]|$)'; then
         PROVIDER="gemini-cli"
     elif printf '%s' "$LOWER_ARGS" | grep -qiE '(^|[ /])codex([ ]|$)'; then
