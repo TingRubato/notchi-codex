@@ -84,6 +84,20 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(store.displayTitle(for: third), "notchi #1 - three")
     }
 
+    func testProcessUsesExplicitProviderFromEvent() {
+        let sessionId = "provider-\(UUID().uuidString)"
+        let store = SessionStore.shared
+
+        let session = store.process(makeEvent(
+            sessionId: sessionId,
+            event: "SessionStart",
+            status: "processing",
+            provider: .codex
+        ))
+
+        XCTAssertEqual(session.provider, .codex)
+    }
+
     private func makeEvent(
         sessionId: String,
         cwd: String = "/tmp",
@@ -91,7 +105,8 @@ final class SessionStoreTests: XCTestCase {
         status: String,
         userPrompt: String? = nil,
         tool: String? = nil,
-        toolUseId: String? = nil
+        toolUseId: String? = nil,
+        provider: AIProvider? = nil
     ) -> HookEvent {
         HookEvent(
             sessionId: sessionId,
@@ -106,7 +121,8 @@ final class SessionStoreTests: XCTestCase {
             toolUseId: toolUseId,
             userPrompt: userPrompt,
             permissionMode: nil,
-            interactive: true
+            interactive: true,
+            provider: provider
         )
     }
 }

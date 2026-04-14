@@ -14,6 +14,7 @@ struct PendingQuestion {
 final class SessionData: Identifiable {
     let id: String
     let cwd: String
+    let provider: AIProvider
     let sessionStartTime: Date
     let spriteXPosition: CGFloat
     let spriteYOffset: CGFloat
@@ -76,9 +77,16 @@ final class SessionData: Identifiable {
     private static let yOffsetBase: CGFloat = -5.0
     private static let yOffsetRange: UInt = 51
 
-    init(sessionId: String, cwd: String, isInteractive: Bool = true, existingXPositions: [CGFloat] = []) {
+    init(
+        sessionId: String,
+        cwd: String,
+        provider: AIProvider = .claude,
+        isInteractive: Bool = true,
+        existingXPositions: [CGFloat] = []
+    ) {
         self.id = sessionId
         self.cwd = cwd
+        self.provider = provider
         self.isInteractive = isInteractive
         self.sessionStartTime = Date()
         self.lastActivity = Date()

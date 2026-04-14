@@ -56,7 +56,17 @@ final class SessionStore {
 
     func process(_ event: HookEvent) -> SessionData {
         let isInteractive = event.interactive ?? true
-        let session = getOrCreateSession(sessionId: event.sessionId, cwd: event.cwd, isInteractive: isInteractive)
+        let provider = Self.resolveProvider(
+            rawProvider: event.provider,
+            cwd: event.cwd,
+            transcriptPath: event.transcriptPath
+        )
+        let session = getOrCreateSession(
+            sessionId: event.sessionId,
+            cwd: event.cwd,
+            provider: provider,
+            isInteractive: isInteractive
+        )
         let isProcessing = event.status != "waiting_for_input"
         session.updateProcessingState(isProcessing: isProcessing)
 
@@ -147,13 +157,24 @@ final class SessionStore {
         return label
     }
 
-    private func getOrCreateSession(sessionId: String, cwd: String, isInteractive: Bool) -> SessionData {
+    private func getOrCreateSession(
+        sessionId: String,
+        cwd: String,
+        provider: AIProvider,
+        isInteractive: Bool
+    ) -> SessionData {
         if let existing = sessions[sessionId] {
             return existing
         }
 
         let existingXPositions = sessions.values.map(\.spriteXPosition)
-        let session = SessionData(sessionId: sessionId, cwd: cwd, isInteractive: isInteractive, existingXPositions: existingXPositions)
+        let session = SessionData(
+            sessionId: sessionId,
+            cwd: cwd,
+            provider: provider,
+            isInteractive: isInteractive,
+            existingXPositions: existingXPositions
+        )
         sessions[sessionId] = session
         recomputeDisplaySessionNumbers()
         logger.info("Created session #\(self.displaySessionNumber(for: session)): \(sessionId, privacy: .public) at \(cwd, privacy: .public)")
@@ -235,6 +256,21 @@ final class SessionStore {
         "/clear", "/help", "/cost", "/status",
         "/vim", "/fast", "/model", "/login", "/logout",
     ]
+
+    private static func resolveProvider(rawProvider: AIProvider?, cwd: String, transcriptPath: String?) -> AIProvider {
+        if let rawProvider {
+            return rawProvider
+        }
+
+        let combined = "\(cwd) \(transcriptPath ?? "")".lowercased()
+        if combined.contains(".codex") || combined.contains("/codex/") {
+            return .codex
+        }
+        if combined.contains(".gemini") || combined.contains("gemini-cli") || combined.contains("/gemini/") {
+            return .geminiCLI
+        }
+        return .claude
+    }
 
     static func isLocalSlashCommand(_ prompt: String?) -> Bool {
         guard let prompt, prompt.hasPrefix("/") else { return false }
